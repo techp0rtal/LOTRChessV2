@@ -126,7 +126,7 @@ def draw_board():
             pygame.draw.line(screen, 'black', (0, 100 * i), (800, 100 * i), 2)  #draws horizontal lines
             pygame.draw.line(screen, 'black', (100 * i, 0), (100 * i, 800), 2)  #draws vertical lines (by inverting the horizontal values)
 
-#Draws pieces out on board
+#Draws pieces out on the board.
 def draw_pieces():
     for i in range(len(white_pieces)):
         index = piece_list.index(white_pieces[i]) #to not what image we need to draw on the screen, we need an index value that will tell us which piece image to use
