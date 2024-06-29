@@ -149,17 +149,154 @@ def draw_pieces():
             if selection == i:
                 pygame.draw.rect(screen, 'blue', [black_locations[i][0] * 100 + 1, black_locations[i][1] * 100 + 1, 100, 100], 2)
 
+# function to check all pieces' valid options on the board. will only update when a piece moves/is captured. VERY important for checking if the king is in check
+def check_options(pieces, locations, turn):
+    moves_list = []
+    all_moves_list = []
+    for i in range((len(pieces))):
+        location = locations[i]
+        piece = pieces[i]
+        #this next part will check every possible move for every possible piece.
+        if piece == 'pawn':
+            moves_list = check_pawn(location, turn)
+            ''' elif piece == 'rook':
+            moves_list = check_rook(location, turn)
+        elif piece == 'knight':
+            moves_list = check_knight(location, turn)
+        elif piece == 'bishop':
+            moves_list = check_bishop(location, turn)
+        elif piece == 'queen':
+            moves_list = check_queen(location, turn)
+        elif piece == 'king':
+            moves_list = check_king(location, turn)'''
+
+        #we just got a list of available moves for each piece. now let's add them together
+        all_moves_list.append(moves_list)
+    return all_moves_list
+
+#check valid pawn moves. we will do this for all pieces
+def check_pawn(position, color):
+    moves_list = []
+    if color == 'white':
+        if (position[0], position [1] + 1) not in white_locations and \
+                (position[0], position[1] + 1) not in black_locations and position[1] < 7: #gotta make sure it doesn't move into a black piece or off the bottom of the board)
+            moves_list.append((position[0], position[1] + 1))
+        if (position[0], position [1] + 2) not in white_locations and \
+                (position[0], position[1] + 2) not in black_locations and position[1] == 1: #this is for the starting move where a pawn can move 2 spaces
+            moves_list.append((position[0], position[1] + 2))
+        #now let's make the pawns' diagonal attack move
+        if (position[0] + 1, position [1] + 1) in black_locations:
+            moves_list.append((position[0] + 1, position[1] + 1))
+        #^^that only checks the diagonal attack for ONE side. so we need to do it again for the other side (left). do a -1 instead to do this.
+        if (position[0] - 1, position [1] + 1) in black_locations:
+            moves_list.append((position[0] - 1, position[1] + 1))
+        '''now we need to do an else for the black pawns because their movement is opposite of what we just checked. they go up the board not down.
+        can do an else statement bc there's only 2 colors of pieces: white or black.'''
+    else:
+        if (position[0], position[1] - 1) not in white_locations and \
+                (position[0], position[1] - 1) not in black_locations and position[1] > 0:  # gotta make sure it doesn't move into a black piece or off the bottom of the board)
+            moves_list.append((position[0], position[1] + 1))
+        if (position[0], position[1] + 2) not in white_locations and \
+                (position[0], position[1] + 2) not in black_locations and position[
+            1] == 1:  # this is for the starting move where a pawn can move 2 spaces
+            moves_list.append((position[0], position[1] + 2))
+        # now let's make the pawns' diagonal attack move
+        if (position[0] + 1, position[1] - 1) in white_locations:
+            moves_list.append((position[0] + 1, position[1] - 1))
+        # ^^that only checks the diagonal attack for ONE side. so we need to do it again for the other side (left). do a -1 instead to do this.
+        if (position[0] - 1, position[1] - 1) in white_locations:
+            moves_list.append((position[0] - 1, position[1] - 1))
+    return moves_list
+
+
+
+#draws valid moves on screen
+def draw_valid(moves):
+    if turn_step < 2:
+        color = 'red'
+    else:
+       color = 'blue'
+    for i in range(len(moves)):
+        pygame.draw.circle(screen, color, (moves[i][0] * 100 + 50, moves[i][1] *100 +500), 5)
+
+
+
+#check for valid moves for just selected piece
+def check_valid_moves():
+    if turn_step < 2:
+        options_list = white_options
+    else:
+        options_list = black_options
+    valid_options = options_list[selection]
+    return valid_options
+
+
+
+
 # main game loop
+black_options = check_options(black_pieces, black_locations,'black') #checks the options of each piece and all their valid moves. the hardest part of programming chess
+white_options = check_options(white_pieces, white_locations,'white')
+
 run = True
 while run:
     timer.tick(fps)
     screen.fill('dark gray')
     draw_board()
     draw_pieces()
+    if selection != 100:
+        valid_moves = check_valid_moves()
+        draw_valid(valid_moves)
+
+
 
     #event handling (getting all your inputs, key board, mouse, etc)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            x_coord = event.pos[0] // 100 #pygame has event.pos which tells us the x,y coordinate of the mouse click on the grid, but on our grid each square is 100 wide, so div x by 100
+            y_coord = event.pos[1] // 100 #same thing for y
+            clicks_coords = (x_coord, y_coord) #useful to have as a tuple because that's how we have all the coordinates of the pieces stored
+            #now we will have a bit of variation depending on if it's white's or black's turn
+            if turn_step <=1:
+                if clicks_coords in white_locations:
+                    selection = white_locations.index(clicks_coords)
+                    if turn_step == 0:
+                        turn_step = 1
+                if clicks_coords in valid_moves and selection != 100:
+                    white_locations[selection] = clicks_coords
+                    if clicks_coords in black_locations:
+                        black_piece =black_locations.index(clicks_coords) #checks what piece we just took out
+                        captured_pieces_white.append(black_pieces[black_piece]) #black piece is an index, and black pieces is the list of all the pieces. we adding piece we just captured for the white player
+                        black_pieces.pop(black_piece)
+                        black_locations.pop(black_piece) #this is removing the piece the white piece just landed on from our pieces list and locatoins' list and adding it to the list of captured pieces
+                    black_options = check_options(black_pieces, black_locations, 'black') #checks the options of each piece and all their valid moves. the hardest part of programming chess
+                    white_options = check_options(white_pieces, white_locations, 'white')
+                    turn_step = 2
+                    selection = 100
+                    valid_moves = []
+            #now what to do if it's black's turn?
+            if turn_step > 1:
+                if clicks_coords in black_locations:
+                    selection = black_locations.index(clicks_coords)
+                    if turn_step == 2:
+                        turn_step = 3
+                if clicks_coords in valid_moves and selection != 100:
+                    black_locations[selection] = clicks_coords
+                    if clicks_coords in white_locations:
+                        white_piece =white_locations.index(clicks_coords) #checks what piece we just took out
+                        captured_pieces_black.append(white_pieces[white_piece]) #black piece is an index, and black pieces is the list of all the pieces. we adding piece we just captured for the white player
+                        white_pieces.pop(white_piece)
+                        white_locations.pop(white_piece) #this is removing the piece the white piece just landed on from our pieces list and locatoins' list and adding it to the list of captured pieces
+                    black_options = check_options(black_pieces, black_locations, 'black') #checks the options of each piece and all their valid moves (doesn't change)
+                    white_options = check_options(white_pieces, white_locations, 'white')
+                    turn_step = 0
+                    selection = 100
+                    valid_moves = []
+
+
+
+
+
     pygame.display.flip()
 pygame.quit()
